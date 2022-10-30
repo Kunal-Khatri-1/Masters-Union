@@ -5,19 +5,19 @@ pragma solidity ^0.8.7;
 // ERRORS
 error ERC20__InsufficientTokens();
 error ERC20__OwnerInsufficientTokens();
-error ERC20__ExceededAllowance();
+error ERC20__ExceededAllowanceArray();
 
 contract ERC20 {
     // CONTRACT
-    mapping(address => uint256) balances;
-    mapping(address => mapping(address => uint256)) public allowance;
+    mapping(address => uint256) balanceArray;
+    mapping(address => mapping(address => uint256)) public allowanceArray;
 
     // OPTIONAL
-    string immutable i_tokenName;
-    string immutable i_tokenSymbol;
+    string tokenName;
+    string tokenSymbol;
     uint8 immutable i_decimals;
     // MANDATORY
-    uint256 tokenSupply;
+    uint256 tokenTotalSupply;
 
     // EVENTS
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -28,23 +28,23 @@ contract ERC20 {
     );
 
     constructor(
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint8 decimals,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        uint8 _decimals,
         uint256 _totalSupply
     ) {
-        i_tokenName = tokenName;
-        i_tokenSymbol = tokenSymbol;
-        i_decimals = decimals;
-        tokenSupply = _totalSupply;
+        tokenName = _tokenName;
+        tokenSymbol = _tokenSymbol;
+        i_decimals = _decimals;
+        tokenTotalSupply = _totalSupply;
 
         // One way to assign initial tokens
-        balanceOf[msg.sender] = _tokenSupply;
+        balanceArray[msg.sender] = _totalSupply;
     }
 
     // OPTIONAL FUNCTIONS
-    function name() public view returns (string) {
-        return i_tokenName;
+    function name() public view returns (string memory) {
+        return tokenName;
     }
 
     function decimals() public view returns (uint8) {
@@ -52,31 +52,34 @@ contract ERC20 {
     }
 
     // MANDATORY FUNCTIONS
-    function totalSupply() public view returns (uint8) {
-        return tokenSupply;
+    function totalSupply() public view returns (uint256) {
+        return tokenTotalSupply;
     }
 
     function balanceOf(address owner) public view returns (uint256 balance) {
-        return balances[owner];
+        return balanceArray[owner];
     }
 
     function transfer(address to, uint256 value) public returns (bool success) {
-        if (balanceOf[msg.sender] < value) {
-            ERC20__InsufficientTokens();
+        if (balanceArray[msg.sender] < value) {
+            revert ERC20__InsufficientTokens();
         }
 
-        balanceOf[msg.sender] -= value;
-        balanceOf[to] += value;
+        balanceArray[msg.sender] -= value;
+        balanceArray[to] += value;
 
         emit Transfer(msg.sender, to, value);
 
         return true;
     }
 
-    function(address spender, uint256 value) public returns (bool success) {
-        allowance[msg.sender][_spender] = _value;
+    function allowance(address spender, uint256 value)
+        public
+        returns (bool success)
+    {
+        allowanceArray[msg.sender][spender] = value;
 
-        emit Approval(msg.sender, _spender, _value);
+        emit Approval(msg.sender, spender, value);
 
         return true;
     }
@@ -86,51 +89,20 @@ contract ERC20 {
         address to,
         uint256 value
     ) public returns (bool success) {
-        if (balanceOf[from] < value) {
+        if (balanceArray[from] < value) {
             revert ERC20__OwnerInsufficientTokens();
         }
 
-        if (allowance[msg.sender] < value) {
-            revert ERC20__ExceededAllowance();
+        if (allowanceArray[from][msg.sender] < value) {
+            revert ERC20__ExceededAllowanceArray();
         }
 
-        balanceOf[from] -= value;
-        balanceOf[to] += value;
-        allowance[from] -= value;
+        balanceArray[from] -= value;
+        balanceArray[to] += value;
+        allowanceArray[from][msg.sender] -= value;
 
         emit Transfer(from, to, value);
 
         return true;
-    }
-
-    // EXTRA FUNCTIONS
-
-    function increaseAllowance(address spender, uint256 value) public view {
-        allowance[msg.sender][spender] += value;
-    }
-
-    function decreaseAllowance(address spender, uint256 value) public view {
-        if (allowance[msg.sender][spender] < value) {
-            revert ERC20__OwnerInsufficientTokens();
-        }
-        allowance[msg.sender][spender] -= value;
-    }
-
-    function mint(uint256 value) public {
-        balanceOf[msg.sender] += value;
-        totalSupply += value;
-
-        emit Transfer(address(0), msg.sender, value)
-    }
-
-    function burn(uint256 value) public {
-        if (balanceOf[msg.sender] < value) {
-            revert ERC20__InsufficientTokens();
-        }
-
-        balanceOf[msg.sender] -= value;
-        totalSupply -= value;
-
-        emit Transfer(msg.sender, address(0), value)
     }
 }
