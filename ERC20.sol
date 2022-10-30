@@ -17,7 +17,7 @@ contract ERC20 {
     string immutable i_tokenSymbol;
     uint8 immutable i_decimals;
     // MANDATORY
-    uint256 immutable i_tokenSupply;
+    uint256 tokenSupply;
 
     // EVENTS
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -31,15 +31,15 @@ contract ERC20 {
         string memory tokenName,
         string memory tokenSymbol,
         uint8 decimals,
-        uint256 totalSupply
+        uint256 _totalSupply
     ) {
         i_tokenName = tokenName;
         i_tokenSymbol = tokenSymbol;
         i_decimals = decimals;
-        i_tokenSupply = totalSupply;
+        tokenSupply = _totalSupply;
 
         // One way to assign initial tokens
-        balanceOf[msg.sender] = i_tokenSupply;
+        balanceOf[msg.sender] = _tokenSupply;
     }
 
     // OPTIONAL FUNCTIONS
@@ -53,7 +53,7 @@ contract ERC20 {
 
     // MANDATORY FUNCTIONS
     function totalSupply() public view returns (uint8) {
-        return i_tokenSupply;
+        return tokenSupply;
     }
 
     function balanceOf(address owner) public view returns (uint256 balance) {
@@ -101,5 +101,36 @@ contract ERC20 {
         emit Transfer(from, to, value);
 
         return true;
+    }
+
+    // EXTRA FUNCTIONS
+
+    function increaseAllowance(address spender, uint256 value) public view {
+        allowance[msg.sender][spender] += value;
+    }
+
+    function decreaseAllowance(address spender, uint256 value) public view {
+        if (allowance[msg.sender][spender] < value) {
+            revert ERC20__OwnerInsufficientTokens();
+        }
+        allowance[msg.sender][spender] -= value;
+    }
+
+    function mint(uint256 value) public {
+        balanceOf[msg.sender] += value;
+        totalSupply += value;
+
+        emit Transfer(address(0), msg.sender, value)
+    }
+
+    function burn(uint256 value) public {
+        if (balanceOf[msg.sender] < value) {
+            revert ERC20__InsufficientTokens();
+        }
+
+        balanceOf[msg.sender] -= value;
+        totalSupply -= value;
+
+        emit Transfer(msg.sender, address(0), value)
     }
 }
