@@ -105,4 +105,34 @@ contract ERC20 {
 
         return true;
     }
+
+    // EXTRA FUNCTIONS
+    function increaseallowanceArray(address spender, uint256 value) public {
+        allowanceArray[msg.sender][spender] += value;
+    }
+
+    function decreaseallowanceArray(address spender, uint256 value) public {
+        if (allowanceArray[msg.sender][spender] < value) {
+            revert ERC20__OwnerInsufficientTokens();
+        }
+        allowanceArray[msg.sender][spender] -= value;
+    }
+
+    function mint(uint256 value) public {
+        balanceArray[msg.sender] += value;
+        tokenTotalSupply += value;
+
+        emit Transfer(address(0), msg.sender, value);
+    }
+
+    function burn(uint256 value) public {
+        if (balanceArray[msg.sender] < value) {
+            revert ERC20__InsufficientTokens();
+        }
+
+        balanceArray[msg.sender] -= value;
+        tokenTotalSupply -= value;
+
+        emit Transfer(msg.sender, address(0), value);
+    }
 }
